@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Token Checker Online</title>
+    <style>
+        body { background: #1a1a1a; color: white; font-family: sans-serif; text-align: center; }
+        textarea { width: 80%; height: 200px; background: #333; color: #fff; padding: 10px; }
+        button { padding: 10px 20px; background: #5865F2; color: white; border: none; cursor: pointer; margin-top: 10px; }
+        .result { margin-top: 20px; text-align: left; display: inline-block; width: 80%; }
+        .VALID { color: #43b581; } .INVALID { color: #f04747; }
+    </style>
+</head>
+<body>
+    <h1>Discord Token Checker</h1>
+    <textarea id="tokenList" placeholder="Put your tokens here (one per line)..."></textarea><br>
+    <button onclick="startCheck()">Start Checking</button>
+    <div class="result" id="output"></div>
+
+    <script>
+        async function startCheck() {
+            const tokens = document.getElementById('tokenList').value.split('\n').filter(t => t.trim() !== "");
+            const output = document.getElementById('output');
+            output.innerHTML = "Checking...";
+
+            const response = await fetch('/check', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({tokens: tokens})
+            });
+
+            const data = await response.json();
+            output.innerHTML = "";
+            data.forEach(item => {
+                output.innerHTML += `<div class="${item.status}">${item.token} ——> ${item.status}</div>`;
+            });
+        }
+    </script>
+</body>
+</html>
