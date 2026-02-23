@@ -1,39 +1,71 @@
 <!DOCTYPE html>
-<html>
+<html lang="ar">
 <head>
-    <title>Token Checker Online</title>
+    <meta charset="UTF-8">
+    <title>Discord Token Checker (Client-Side)</title>
     <style>
-        body { background: #1a1a1a; color: white; font-family: sans-serif; text-align: center; }
-        textarea { width: 80%; height: 200px; background: #333; color: #fff; padding: 10px; }
-        button { padding: 10px 20px; background: #5865F2; color: white; border: none; cursor: pointer; margin-top: 10px; }
-        .result { margin-top: 20px; text-align: left; display: inline-block; width: 80%; }
-        .VALID { color: #43b581; } .INVALID { color: #f04747; }
+        body { background: #1a1a1a; color: white; font-family: 'Segoe UI', sans-serif; text-align: center; padding: 20px; }
+        textarea { width: 90%; height: 150px; background: #2c2f33; color: #fff; border: 1px solid #5865F2; padding: 10px; border-radius: 5px; }
+        button { padding: 15px 30px; background: #5865F2; color: white; border: none; cursor: pointer; border-radius: 5px; font-weight: bold; margin-top: 10px; }
+        button:hover { background: #4752c4; }
+        .stats { margin: 20px; display: flex; justify-content: center; gap: 20px; }
+        .stat-box { padding: 10px 20px; border-radius: 5px; background: #23272a; }
+        .valid { color: #43b581; } .invalid { color: #f04747; } .locked { color: #faa61a; }
+        #results { margin-top: 20px; text-align: left; max-width: 90%; margin-left: auto; margin-right: auto; background: #23272a; padding: 15px; border-radius: 5px; height: 300px; overflow-y: auto; font-family: monospace; }
     </style>
 </head>
 <body>
     <h1>Discord Token Checker</h1>
-    <textarea id="tokenList" placeholder="Put your tokens here (one per line)..."></textarea><br>
-    <button onclick="startCheck()">Start Checking</button>
-    <div class="result" id="output"></div>
+    <p>الفحص بيتم من جهازك مباشرة (Your IP)</p>
+    
+    <textarea id="tokens" placeholder="ضع التوكنات هنا.. كل توكن في سطر"></textarea><br>
+    <button id="startBtn">ابدأ الفحص</button>
+
+    <div class="stats">
+        <div class="stat-box">شغال: <span id="vCount" class="valid">0</span></div>
+        <div class="stat-box">معطل: <span id="iCount" class="invalid">0</span></div>
+        <div class="stat-box">محمي (Lock): <span id="lCount" class="locked">0</span></div>
+    </div>
+
+    <div id="results">نتائج الفحص ستظهر هنا...</div>
 
     <script>
-        async function startCheck() {
-            const tokens = document.getElementById('tokenList').value.split('\n').filter(t => t.trim() !== "");
-            const output = document.getElementById('output');
-            output.innerHTML = "Checking...";
+        document.getElementById('startBtn').onclick = async () => {
+            const tokenList = document.getElementById('tokens').value.split('\n').filter(t => t.trim() !== "");
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = "";
+            
+            let v = 0, i = 0, l = 0;
 
-            const response = await fetch('/check', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({tokens: tokens})
-            });
+            for (let token of tokenList) {
+                token = token.trim();
+                try {
+                    // الطلب بيخرج من متصفح المستخدم مباشرة
+                    const resp = await fetch('https://discord.com/api/v9/users/@me', {
+                        headers: { 'Authorization': token }
+                    });
 
-            const data = await response.json();
-            output.innerHTML = "";
-            data.forEach(item => {
-                output.innerHTML += `<div class="${item.status}">${item.token} ——> ${item.status}</div>`;
-            });
-        }
+                    if (resp.status === 200) {
+                        const data = await resp.json();
+                        v++;
+                        resultsDiv.innerHTML += `<div class="valid">[Valid] ${token.substring(0,20)}... | ${data.username}</div>`;
+                    } else if (resp.status === 401) {
+                        i++;
+                        resultsDiv.innerHTML += `<div class="invalid">[Invalid] ${token.substring(0,20)}...</div>`;
+                    } else if (resp.status === 403) {
+                        l++;
+                        resultsDiv.innerHTML += `<div class="locked">[Locked/Captcha] ${token.substring(0,20)}...</div>`;
+                    }
+                } catch (err) {
+                    resultsDiv.innerHTML += `<div style="color:gray">[Error] اتصالك محجوب أو خطأ في الشبكة</div>`;
+                }
+                
+                // تحديث العدادات
+                document.getElementById('vCount').innerText = v;
+                document.getElementById('iCount').innerText = i;
+                document.getElementById('lCount').innerText = l;
+            }
+        };
     </script>
 </body>
 </html>
